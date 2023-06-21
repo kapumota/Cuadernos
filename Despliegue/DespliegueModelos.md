@@ -3,6 +3,7 @@
 
 En esta actividad, veremos el despliegue de modelos: el proceso de poner los modelos en uso. 
 En particular, vemos cómo empaquetar un modelo dentro de un servicio web, para que otros servicios puedan usarlo. 
+
 También vemos cómo implementar el servicio web en un entorno listo para producción. 
 
 ### Modelo de predicción
@@ -128,13 +129,94 @@ Debido a que guardamos una tupla, la descomprimimos al cargar, por lo que obtene
 
 **Ejercicio** Escribe un script de Python simple que cargue el modelo y lo aplique a un cliente. Llama a este archivo `servicio1.py`. Este script  de contener :
 
-- La función predict_single que escribimos anteriormente
+- La función `predict_cliente` que escribimos anteriormente
 - El código para cargar el modelo.
 - El código para aplicar el modelo a un cliente. 
 
 
 Después de guardar el archivo, ejecuta este script en Python.
 
+### Servicio web
 
+Uno de los frameworks más populares para crear servicios web en Python es [Flask](https://flask.palletsprojects.com/en/2.3.x/), que trataremos a continuación. 
+
+#### Flask 
+
+Una forma de implementar un servicio web en Python es usar Flask. Es bastante liviano, requiere poco código para comenzar y oculta la mayor parte de la complejidad de manejar solicitudes y respuestas HTTP.  
+
+Antes de poner nuestro modelo dentro de un servicio web, cubramos los conceptos básicos del uso de Flask. Para eso, crearemos una función simple y la haremos disponible como un servicio web. Después de cubrir los conceptos básicos, nos encargaremos del modelo. 
+
+**Ejercicio:** Escribe un script llamado `flask_test.py`  realizando los siguientes pasos:
+
+1. Escribe una función de Python simple llamada `hola`: 
+
+```
+def hola():
+     return 'Hola C8280'
+```
+
+2. Importa flask para poder usarlo: 
+
+```
+from flask import Flask
+```
+
+3. Creamos una aplicación Flask, el objeto central para registrar funciones que deben exponerse en el servicio web. 
+
+4. Especifica cómo llegar a la función asignándole una dirección o una ruta en términos de Flask. 
+
+5. Escribe código y ejecuta el script creado.
+
+#### Usando flask en el modelo 
+
+Para calificar a un cliente, el modelo necesita obtener las características, lo que significa que necesitamos una forma de transferir algunos datos de un servicio (el servicio de campaña) a otro (el servicio de abandono). 
+
+Como formato de intercambio de datos, los servicios web suelen utilizar JSON (notación de objetos Javascript). Es similar a la forma en que definimos los diccionarios en Python: 
+
+```
+{
+"customerid": "8879-zkjof",
+"gender": "female",
+"seniorcitizen": 0,
+"partner": "no",
+"dependents": "no",
+...
+}
+```
+
+Para enviar datos, usamos solicitudes POST, no GET: las solicitudes POST pueden incluir los datos en la solicitud, mientras que GET no. Por lo tanto, para que el servicio de campaña pueda obtener predicciones del servicio de abandono, debemos crear una ruta /predict que acepte solicitudes POST. 
+
+El servicio de abandono analizará los datos JSON sobre un cliente y también responderá en JSON. 
+
+**Ejercicio:**
+
+Modifica el archivo `servicio1.py` de la siguiente manera:  
+
+1. Primero, agregamos algunas importaciones más en la parte superior del archivo: 
+
+```
+from flask import Flask, request, jsonify
+```
+
+2. A continuación, crea la aplicación Flask. Llamémoslo `Abandono`: 
+
+```
+app = Flask('Abandono')
+```
+
+3. Ahora necesitamos crear una función con las siguientes características:
+    - Que otiene los datos del cliente en una solicitud
+    - Qué invoca `predict_cliente` para puntuar al cliente
+    - Responde con la probabilidad de abandono en JSON 
+
+4. Ejecuta aplicación Flask.  
+
+**Pregunta:** ¿Qué mensaje aparece después de que se ejecuta ?.  
+
+Probar este código es un poco más difícil que antes: esta vez, necesitamos usar solicitudes POST e incluir al cliente que queremos calificar en el cuerpo de la solicitud. 
+
+La forma más sencilla de hacer esto es usar la librería [requests](https://pypi.org/project/requests/) en Python. 
+
+**Ejercicio:** Abre el mismo Jupyter Notebook que usamos anteriormente y prueba el servicio web desde allí usando `requests`. 
 
 
