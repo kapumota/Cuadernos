@@ -190,7 +190,7 @@ El servicio de abandono analizará los datos JSON sobre un cliente y también re
 
 **Ejercicio:**
 
-Modifica el archivo `servicio1.py` de la siguiente manera:  
+Modifica el archivo `servicio1.py` llamandolo `servicio2.py` de la siguiente manera:  
 
 1. Primero, agregamos algunas importaciones más en la parte superior del archivo: 
 
@@ -218,5 +218,175 @@ Probar este código es un poco más difícil que antes: esta vez, necesitamos us
 La forma más sencilla de hacer esto es usar la librería [requests](https://pypi.org/project/requests/) en Python. 
 
 **Ejercicio:** Abre el mismo Jupyter Notebook que usamos anteriormente y prueba el servicio web desde allí usando `requests`. 
+
+
+### Gestión de dependencias 
+
+Para el desarrollo local, Anaconda es una herramienta perfecta: tiene casi todas las librerías que podamos necesitar. Esto, sin embargo, también tiene un inconveniente: ocupa 4 GB cuando se desempaqueta, lo cual es demasiado grande. Para la producción, preferimos tener solo las librerías que realmente necesitamos. 
+
+Además, los diferentes servicios tienen diferentes requisitos. A menudo, estos requisitos entran en conflicto, por lo que no podemos usar el mismo entorno para ejecutar varios servicios al mismo tiempo. 
+
+#### Pipenv
+
+Realizamos la creación de un entorno virtual para cada proyecto: una distribución de Python separada que solo requiere librerías para este proyecto en particular. 
+
+[Pipenv](https://pipenv-es.readthedocs.io/es/latest/) es una herramienta que facilita la gestión de entornos virtuales. 
+
+Después de eso, usamos `pipenv `en lugar de pip para instalar algunas dependencias como: 
+
+```
+pipenv install numpy scikit-learn flask
+```
+
+Después de finalizar la instalación se crea dos archivos: `Pipenv` y `Pipenv.lock`. 
+
+El archivo Pipenv parece bastante simple (puede cambiar): 
+
+```
+[[source]]
+   name = "pypi"
+       url = "https:/ /pypi.org/simple"
+            verify_ssl = true
+               [dev-packages]
+               [packages]
+             numpy = "*"
+               scikit-learn = "*"
+                   flask = "*"
+            [requires]
+                 python_version = "3.7"
+```
+
+Vemos que este archivo contiene una lista de librerías, así como la versión de Python que usamos. 
+
+El otro archivo, `Pipenv.lock`, contiene las versiones específicas de las librerías que usamos para el proyecto. 
+
+**Pregunta:** Muestras los dos archivos que han resultado en el experimento realizado.
+
+Si alguien necesita trabajar en nuestro proyecto, simplemente necesitas ejecutar el comando de instalación: 
+
+```
+pipenv install
+```
+
+Este paso primero creará un entorno virtual y luego se instala todas las librerías necesarias de `Pipenv.lock`. 
+
+
+Una vez instaladas todas las librerías, debemos activar el entorno virtual,  de esta forma, nuestra aplicación utilizará las versiones correctas de las librerías. 
+
+Lo hacemos ejecutando el comando `shell`: 
+
+```
+pipenv shell
+``` 
+
+Qué nos dice que se está ejecutando en un entorno virtual: `Launching subshell in virtual environment`.
+
+**Ejercicio:** Ejecuta el script para servir: `python servicio2.py`. 
+
+Alternativamente, en lugar de ingresar primero explícitamente al entorno virtual y luego ejecutar el script, realiza estos dos pasos con solo un comando: 
+
+```
+pipenv run python servicio2.py
+```
+
+¿Qué sucede cuando lo probamos con `requests`?. ¿A aparecido una advertencia en la consola? 
+
+
+WSGI (web server gateway interface) significa interfaz de puerta de enlace del servidor web, que es una especificación que describe cómo las aplicaciones de Python deben manejar las solicitudes HTTP. 
+
+Sin embargo, abordaremos la advertencia instalando un servidor WSGI de producción. Tenemos múltiples opciones posibles en Python y usaremos [Gunicorn](https://gunicorn.org/). 
+
+Instalamos con `Pipenv` este servidor:  `pipenv install gunicorn`
+
+Este comando instala la librería y la incluye como una dependencia en el proyecto al agregarla a los archivos `Pipenv` y `Pipenv.lock`. 
+
+Ejecutemos la aplicación con Gunicorn: 
+
+```
+pipenv run gunicorn --bind 0.0.0.0:9696 :servicio2:app
+``` 
+**Pregunta:** Si todo va bien, ¿qué mensajes aparecene en la terminal?. 
+
+
+
+A diferencia del servidor web incorporado de Flask, Gunicorn está listo para la producción, por lo que no tendrás ningún problema bajo carga cuando comencemos a usarlo. 
+
+
+**Pregunta** Comprueba con con el mismo código dado anteriormente la respuesta resultante?. 
+
+
+`Pipenv` es una gran herramienta para administrar dependencias: aísla las librerías requeridas en un entorno separado, lo que nos ayuda a evitar conflictos entre diferentes versiones del mismo paquete. 
+
+### Docker
+
+Hemos visto como gestionar las dependencias de Python con Pipenv. Sin embargo, algunas de las dependencias viven fuera de Python. Lo que es más importante, estas dependencias incluyen el sistema operativo (SO), así como las librerías del sistema.  
+
+[Docker](https://www.docker.com/) resuelve este problema "pero funciona en mi máquina" empaquetando también el sistema operativo y las librerías del sistema en un contenedor Docker, un entorno autónomo que funciona en cualquier lugar donde esté instalado Docker. 
+
+Una vez que el servicio está empaquetado en un contenedor Docker, podemos ejecutarlo en nuestra computadora (independientemente del sistema operativo) o cualquier proveedor de nube pública. 
+
+Veamos cómo usarlo para este proyecto. 
+
+Suponemos que ya tiene Docker instalado. Ver: https://docs.docker.com/engine/install/  
+
+
+Primero, necesitamos crear una imagen de Docker: la descripción del servicio que incluye todas las configuraciones y dependencias. Docker luego usará la imagen para crear un contenedor. Para hacerlo, necesitamos un [Dockerfile](https://docs.docker.com/engine/reference/builder/), un archivo con instrucciones sobre cómo se debe crear la imagen. 
+
+Construyamos una imagen usando instrucciones de Dockerfile y luego ejecutemos esta imagen en una computadora. 
+
+Vamos a crear un archivo con el nombre Dockerfile y el siguiente contenido (ten en cuenta que el archivo no debe incluir las anotaciones): 
+
+```
+FROM python:3.7.5-slim			
+ENV PYTHONUNBUFFERED=TRUE           
+RUN pip --no-cache-dir install pipenv		
+WORKDIR /app				
+COPY ["Pipfile", "Pipfile.lock", "./"]		
+RUN pipenv install --deploy --system && \ rm -rf /root/.cache   
+COPY ["*.py", "modelo_trabajo.bin", "./"] 			
+
+EXPOSE 9696 						
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:9696", "servicio2:app" ]    
+```
+
+**Investigación:**  Explica línea por línea el contenido del archivo Dockerfile. 
+
+
+Construyamos la imagen. Lo hacemos ejecutando el comando `build` en Docker:
+
+```
+docker build -t modelo-prediccion .
+```
+
+El indicador -t nos permite establecer el nombre de la etiqueta para la imagen y el parámetro final, el punto, especifica el directorio con el Dockerfile. 
+En este caso, significa que usamos el directorio actual. 
+
+Al final, Docker nos dice que creó con éxito una imagen y la etiquetó como `modelo-prediccion:latest`.  
+
+Estamos listos para usar esta imagen para iniciar un contenedor Docker. 
+
+Usa el comando `run` para eso: 
+
+```
+docker run -it -p 9696:9696 modelo-prediccion:latest
+```
+
+Especificamos algunos parámetros aquí: 
+
+- El indicador `-it` le dice a Docker que lo ejecutamos desde el terminal y necesitamos ver los resultados. 
+- El parámetro `-p` especifica la asignación de puertos. `9696:9696` significa asignar el puerto `9696` en el contenedor al puerto `9696` en la máquina de trabajo. 
+- Finalmente, necesitamos el nombre y la etiqueta de la imagen, que en nuestro caso es `modelo-prediccion:latest`. 
+
+Ahora nuestro servicio se ejecuta dentro de un contenedor Docker y podemos conectarnos a él mediante el puerto 9696). Este es el mismo puerto que usamos para nuestra aplicación anteriormente. 
+
+
+
+El puerto 9696 en la máquina host se asigna al puerto 9696 del contenedor, por lo que cuando enviamos una solicitud a localhost: 9696, nuestro servicio en Docker la maneja. 
+
+Vamos a probarlo usando el mismo código. Cuando lo ejecutemos, veremos la misma respuesta: (ver en el cuaderno)
+
+{'churn': False, 'churn_probability': 0.05960590758316391}
+
+Docker facilita la ejecución de servicios de forma reproducible. Con Docker, el entorno dentro del contenedor siempre permanece igual. Esto significa que si podemos ejecutar nuestro servicio en una computadora portátil, funcionará en cualquier otro lugar. Ya probamos nuestra aplicación en nuestra computadora portátil, así que ahora veamos cómo ejecutarla en una nube pública e implementarla en AWS. 
 
 
