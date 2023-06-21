@@ -351,7 +351,6 @@ ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:9696", "servicio2:app" ]
 
 **Investigación:**  Explica línea por línea el contenido del archivo Dockerfile. 
 
-
 Construyamos la imagen. Lo hacemos ejecutando el comando `build` en Docker:
 
 ```
@@ -377,16 +376,9 @@ Especificamos algunos parámetros aquí:
 - El parámetro `-p` especifica la asignación de puertos. `9696:9696` significa asignar el puerto `9696` en el contenedor al puerto `9696` en la máquina de trabajo. 
 - Finalmente, necesitamos el nombre y la etiqueta de la imagen, que en nuestro caso es `modelo-prediccion:latest`. 
 
-Ahora nuestro servicio se ejecuta dentro de un contenedor Docker y podemos conectarnos a él mediante el puerto 9696). Este es el mismo puerto que usamos para nuestra aplicación anteriormente. 
+Ahora nuestro servicio se ejecuta dentro de un contenedor Docker y podemos conectarnos a él mediante el puerto 9696). Este es el mismo puerto que usamos para la aplicación anteriormente. 
 
 
 
-El puerto 9696 en la máquina host se asigna al puerto 9696 del contenedor, por lo que cuando enviamos una solicitud a localhost: 9696, nuestro servicio en Docker la maneja. 
-
-Vamos a probarlo usando el mismo código. Cuando lo ejecutemos, veremos la misma respuesta: (ver en el cuaderno)
-
-{'churn': False, 'churn_probability': 0.05960590758316391}
-
-Docker facilita la ejecución de servicios de forma reproducible. Con Docker, el entorno dentro del contenedor siempre permanece igual. Esto significa que si podemos ejecutar nuestro servicio en una computadora portátil, funcionará en cualquier otro lugar. Ya probamos nuestra aplicación en nuestra computadora portátil, así que ahora veamos cómo ejecutarla en una nube pública e implementarla en AWS. 
 
 
