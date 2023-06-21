@@ -378,7 +378,99 @@ Especificamos algunos parámetros aquí:
 
 Ahora nuestro servicio se ejecuta dentro de un contenedor Docker y podemos conectarnos a él mediante el puerto 9696). Este es el mismo puerto que usamos para la aplicación anteriormente. 
 
+![Docker](https://github.com/kapumota/Cuadernos/blob/main/Despliegue/Docker.png)
+
+**Pregunta:** Comprueba los resultados obtenidos desde el cuaderno entregado.
+
+Docker facilita la ejecución de servicios de forma reproducible. Con Docker, el entorno dentro del contenedor siempre permanece igual. 
+
+Esto significa que si podemos ejecutar el servicio en una computadora portátil, funcionará en cualquier otro lugar. 
+
+Debemos probar que la aplicación función en una computadora, así que ahora veamos cómo ejecutar  en una nube pública e implementarla en AWS. 
+
+#### Despliegue
+
+No ejecutamos servicios de producción en computadoras simples necesitamos servidores especiales para eso. 
+
+[AWS Elastic Beanstalk](https://aws.amazon.com/es/elasticbeanstalk/) es una excelente herramienta para comenzar a servir modelos de aprendizaje automático. 
+Es elegible para la capa gratuita y debemos tener cuidado y apagarla tan pronto como ya no lo necesitemos. 
+
+ Las formas más avanzadas de hacerlo involucran sistemas de orquestación de contenedores como AWS ECS o Kubernetes o "sin servidor" con AWS Lambda.
+
+Elastic Beanstalk se ocupa automáticamente de muchas cosas que normalmente necesitamos en producción, incluidas la:
+
+- Implementación del servicio en instancias EC2
+- Ampliación: agregando más instancias para manejar la carga durante las horas pico
+- Reducción: eliminación de estas instancias cuando la carga desaparece
+- Reiniciar el servicio si falla por algún motivo
+- Equilibrar la carga entre instancias
+
+También necesitaremos una utilidad especial, la interfaz de línea de comandos (CLI) de Elastic Beanstalk, para usar Elastic Beanstalk. 
+
+La CLI está escrita en Python, por lo que podemos instalarla con `pip`, como cualquier otra herramienta de Python.
+
+Sin embargo, debido a que usamos Pipenv, podemos agregarlo como una dependencia de desarrollo. De esta manera, lo instalaremos solo para el proyecto y no en todo el sistema.
+
+```
+pipenv install awsebcli --dev
+```
+
+Luego de instalar Elastic Beanstalk, podemos ingresar al entorno virtual del proyecto: `pipenv shell`.
+
+Ahora la CLI debería estar disponible. Vamos a comprobarlo:
+
+```
+eb --version
+``` 
+
+A continuación, ejecutamos el comando de inicialización:
+
+```
+eb init -p docker modelo-abandono
+````
+
+Ten en cuenta que usamos `-p` docker: de esta manera, especificamos que este es un proyecto basado en Docker.
+
+Si todo está bien, crea un par de archivos, incluido un archivo `config.yml` en la carpeta `.elasticbeanstalk`.
+
+Ahora podemos probar la aplicación localmente usando el comando `local run`:
+
+```
+eb local run --port 9696
+```
+
+Esto debería funcionar de la misma manera que en la sección anterior con Docker: primero se una imagen y luego ejecuta el contenedor. 
 
 
+**Pregunta:** Utiliza el mismo código que antes y comprueba que se obtiene la misma respuesta.
+
+Después de verificar que funciona bien localmente, estamos listos para implementarlo en AWS. Podemos hacer eso con un comando:
+
+```
+eb create modelo-abandono-env
+```
+Este simple comando se encarga de configurar todo lo que necesitamos, desde las instancias EC2 hasta las reglas de escalado automático.
+
+Tardará unos minutos en crear todo. Podemos monitorear el proceso y ver qué  se está haciendo en el terminal. 
+
+**Ejercicio:** La URL (`modelo-abandono-env....us-west 2.elasticbeanstalk.com`) en los registros es importante: así es como llegamos a la aplicación. 
+Ahora utiliza usar esta URL para hacer predicciones.
+
+![](https://github.com/kapumota/Cuadernos/blob/main/Despliegue/ElasticBeanStalk.png)
+
+Deberías ver la misma respuesta.
+
+
+Podemos hacer todo desde la terminal usando la CLI, pero también es posible administrarlo desde la Consola de AWS. Para ello, buscamos allí Elastic Beanstalk y seleccionamos el entorno que acabamos de crear. Para desactivarlo, escoge Terminate deployment en el menú Environment action mediante la Consola de AWS.
+
+Aunque Elastic Beanstalk es apto para la capa gratuita, siempre debemos tenga cuidado y apáguelo en cuanto ya no lo necesitemos.
+
+
+Alternativamente, usamos la CLI para hacerlo:
+
+```
+eb terminate modelo-abandono-env
+``` 
+Después de unos minutos, la implementación se eliminará de AWS y ya no se podrá acceder a la URL.
 
 
