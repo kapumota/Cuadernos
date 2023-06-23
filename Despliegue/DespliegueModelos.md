@@ -96,7 +96,7 @@ Para guardar el modelo, primero importamos el módulo Pickle y luego usamos la f
 ```
 import pickle
 with open('modelo_trabajo.bin', 'wb') as f_out:
-     pickle.dump(modelo, f_in)
+     pickle.dump(modelo, f_out)
 ``` 
 
 Cuando abrimos un archivo con `open` debemos cerrarlo después de que terminemos de escribir. 
